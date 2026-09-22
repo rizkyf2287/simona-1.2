@@ -73,8 +73,10 @@ function normalizeSheetDoc(d, docType){
   return {
     id: d.id || cryptoId(), docId: d.docId || nextDocId(), title: d.title||'(Tanpa judul)',
     relatedDept: DEPARTMENTS.includes(d.relatedDept) ? d.relatedDept : DEPARTMENTS[0],
-    docType, noSurat: d.noSurat||'', noRangka: d.noRangka||'', noInvoice: d.noInvoice||'', tglInvoice: d.tglInvoice||'', tglTerima: d.tglTerima||'', tglRencana: d.tglRencana||'', tglBayarCair: d.tglBayarCair||'',
-    nominal: Number(d.nominal)||0, status: STATUS_LIST.includes(d.status) ? d.status : 'Draft',
+    docType, noSurat: d.noSurat||'', noRangka: d.noRangka||'', vendor: d.vendor||'', noPV: d.noPV||'',
+    noInvoice: d.noInvoice||'', tglInvoice: d.tglInvoice||'', tglTerima: d.tglTerima||'', tglRencana: d.tglRencana||'', tglBayarCair: d.tglBayarCair||'',
+    nominal: Number(d.nominal)||0, totalDPP: Number(d.totalDPP)||0, transferCair: Number(d.transferCair)||0,
+    status: STATUS_LIST.includes(d.status) ? d.status : 'Draft',
     disburse: d.disburse==='Yes' ? 'Yes' : 'No',
     sumber: SUMBER.includes(d.sumber) ? d.sumber : 'Lainnya',
     fileSize: d.fileSize||'—', description: d.description||'', submittedBy: d.submittedBy||'—',
@@ -181,7 +183,9 @@ async function autoPushDocsNow(){
     const r2 = ap.length ? await sheetsPush('AP', ap) : {added:0,updated:0};
     state.documents.forEach(d=>{ if(!state.syncedDocIds.includes(d.id)) state.syncedDocIds.push(d.id); });
     await persistSyncedIds();
-    logSync(`Push dokumen — AR: +${r1.added||0}/${r1.updated||0}upd; AP: +${r2.added||0}/${r2.updated||0}upd.`, true);
+    const arNote = ar.length ? `+${r1.added||0}/${r1.updated||0}upd` : '0 dok. lokal (tidak dikirim)';
+    const apNote = ap.length ? `+${r2.added||0}/${r2.updated||0}upd` : '0 dok. lokal (tidak dikirim)';
+    logSync(`Push dokumen — AR: ${arNote}; AP: ${apNote}.`, true);
   }catch(err){
     logSync('Push dokumen gagal: '+err.message, false);
   }
@@ -284,7 +288,7 @@ async function performPull(){
     await persistUsers(true);
     await persistSyncedIds();
 
-    logSync(changed ? 'Tarik: perubahan dari Sheets terdeteksi &amp; digabungkan.' : 'Tarik: tidak ada perubahan baru dari Sheets.', true);
+    logSync(`Tarik selesai — diterima dari Sheets: ${ar.length} dok. AR, ${ap.length} dok. AP, ${users.length} user. ${changed ? 'Ada perubahan digabungkan.' : 'Tidak ada perubahan baru.'}`, true);
     if(changed && ['dashboard','documents','detail','reports','sync'].includes(state.view)) render();
   }catch(err){
     logSync('Tarik gagal: '+err.message, false);
@@ -308,4 +312,6 @@ function startAutoSync(){
 function stopAutoSync(){
   if(autoPullInterval){ clearInterval(autoPullInterval); autoPullInterval = null; }
 }
+
+
 

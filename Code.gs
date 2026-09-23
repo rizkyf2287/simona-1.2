@@ -68,7 +68,8 @@
 
 var DOC_HEADERS = [
   'id', 'docId', 'title', 'relatedDept', 'docType',
-  'noSurat', 'noRangka', 'noInvoice', 'tglInvoice', 'tglTerima', 'tglRencana', 'tglBayarCair', 'nominal',
+  'noSurat', 'noRangka', 'vendor', 'noPV', 'noInvoice', 'tglInvoice', 'tglTerima', 'tglRencana', 'tglBayarCair',
+  'totalDPP', 'nominal', 'transferCair',
   'status', 'disburse', 'sumber', 'description', 'submittedBy',
   'createdAt', 'updatedAt', 'auditTrailJSON'
 ];
@@ -262,19 +263,34 @@ function readUserSheet() {
 }
 
 /* ---------- Upsert (ADDITIF, tidak menimpa baris lain) ---------- */
+// Baris lama dari sheet (mungkin punya kolom lebih sedikit/berbeda urutan kalau skema
+// pernah berubah sebelumnya) dipetakan ulang ke struktur DOC_HEADERS SAAT INI berdasarkan
+// NAMA kolom lama, bukan posisi mentah — supaya panjang tiap baris selalu konsisten dan
+// tidak membuat setValues() gagal karena "Incorrect range width".
+function normalizeRowToHeaders(oldHeaders, row, targetHeaders, jsonField){
+  var obj = {};
+  oldHeaders.forEach(function (h, i) { obj[h] = row[i]; });
+  return targetHeaders.map(function (h) {
+    if (h === jsonField) return obj[h] !== undefined ? obj[h] : '[]';
+    return obj[h] !== undefined && obj[h] !== null ? obj[h] : '';
+  });
+}
+
 function upsertDocSheet(type, docs) {
   var sheet = getDocSheet(type);
   var values = sheet.getDataRange().getValues();
-  var headers = values.length ? values[0] : DOC_HEADERS;
-  var idIndex = headers.indexOf('id');
-  var statusIndex = headers.indexOf('status');
-  var existingRows = values.length > 1 ? values.slice(1).filter(function (r) { return r.join('') !== ''; }) : [];
+  var oldHeaders = values.length ? values[0] : DOC_HEADERS;
+  var idIndex = oldHeaders.indexOf('id');
+  var statusIndex = oldHeaders.indexOf('status');
+  var existingRowsRaw = values.length > 1 ? values.slice(1).filter(function (r) { return r.join('') !== ''; }) : [];
 
   var byId = {};
   var order = [];
-  existingRows.forEach(function (row) {
+  existingRowsRaw.forEach(function (row) {
     var key = String(row[idIndex]);
-    byId[key] = row;
+    // Petakan ulang ke struktur DOC_HEADERS terkini supaya panjang baris selalu konsisten,
+    // meskipun sheet ini dibuat dengan versi skema yang lebih lama.
+    byId[key] = normalizeRowToHeaders(oldHeaders, row, DOC_HEADERS, 'auditTrailJSON');
     order.push(key);
   });
 
@@ -286,7 +302,8 @@ function upsertDocSheet(type, docs) {
       return d[h] !== undefined && d[h] !== null ? d[h] : '';
     });
     if (byId.hasOwnProperty(key)) {
-      var oldStatus = byId[key][statusIndex];
+      var oldStatusIdx = DOC_HEADERS.indexOf('status');
+      var oldStatus = byId[key][oldStatusIdx];
       if (oldStatus && oldStatus !== d.status) {
         notifyStatusChange(type, d, oldStatus, d.status);
       }

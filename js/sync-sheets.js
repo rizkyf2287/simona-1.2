@@ -39,7 +39,9 @@ function jsonpRequest(url, params={}, timeoutMs=15000){
 async function sheetsPing(){
   return jsonpRequest(state.sheetsUrl, { action:'ping' });
 }
-async function sheetsPush(docType, docs){
+const PUSH_BATCH_SIZE = 50; // dokumen per kiriman — mencegah "Failed to fetch" saat data banyak (ratusan dokumen)
+
+async function sheetsPushOneBatch(docType, docs){
   const res = await fetch(state.sheetsUrl, {
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -47,6 +49,19 @@ async function sheetsPush(docType, docs){
   });
   if(!res.ok) throw new Error('HTTP '+res.status);
   return res.json();
+}
+// Mengirim dokumen bertahap per kelompok kecil (bukan semua sekaligus) supaya tidak
+// gagal "Failed to fetch" saat jumlah dokumen banyak (ratusan/ribuan).
+async function sheetsPush(docType, docs){
+  if(docs.length <= PUSH_BATCH_SIZE) return sheetsPushOneBatch(docType, docs);
+  let totalAdded = 0, totalUpdated = 0, lastTotal = 0;
+  for(let i=0; i<docs.length; i+=PUSH_BATCH_SIZE){
+    const batch = docs.slice(i, i+PUSH_BATCH_SIZE);
+    const r = await sheetsPushOneBatch(docType, batch);
+    totalAdded += r.added||0; totalUpdated += r.updated||0; lastTotal = r.total||lastTotal;
+    logSync(`Push ${docType} batch ${Math.floor(i/PUSH_BATCH_SIZE)+1}/${Math.ceil(docs.length/PUSH_BATCH_SIZE)} selesai (${batch.length} dok.).`, true);
+  }
+  return { added: totalAdded, updated: totalUpdated, total: lastTotal };
 }
 async function sheetsPushUsers(users){
   const res = await fetch(state.sheetsUrl, {
@@ -312,6 +327,4 @@ function startAutoSync(){
 function stopAutoSync(){
   if(autoPullInterval){ clearInterval(autoPullInterval); autoPullInterval = null; }
 }
-
-
 

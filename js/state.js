@@ -30,6 +30,7 @@ async function initStorage(){
     const r3 = await simonaStorage.get(SHEETS_URL_KEY, false);
     if(r3 && r3.value) state.sheetsUrl = r3.value;
   }catch(e){ /* keep empty */ }
+  if(!state.sheetsUrl && DEFAULT_SHEETS_URL) state.sheetsUrl = DEFAULT_SHEETS_URL;
   try{
     const r4 = await simonaStorage.get(SYNCED_IDS_KEY, false);
     if(r4 && r4.value){ const parsed = JSON.parse(r4.value); state.syncedDocIds = parsed.docIds||[]; state.syncedUserIds = parsed.userIds||[]; }
@@ -38,6 +39,21 @@ async function initStorage(){
     const r5 = await simonaStorage.get(AUTO_SYNC_KEY, false);
     if(r5 && r5.value!==undefined) state.autoSyncEnabled = r5.value !== 'false';
   }catch(e){ /* keep default true */ }
+  // Perangkat baru (belum pernah login) mungkin belum punya user custom yang dibuat
+  // dari perangkat lain — tarik dulu daftar user terbaru dari Sheets sebelum login
+  // divalidasi, supaya NIK yang baru ditambahkan di perangkat lain langsung bisa dipakai
+  // tanpa perlu login dulu untuk mengatur sinkronisasi (soal ayam-telur).
+  if(state.sheetsUrl && typeof jsonpRequest === 'function'){
+    try{
+      const data = await jsonpRequest(state.sheetsUrl, { type:'Users' });
+      const pulledUsers = (data.users||[]).map(u=> typeof normalizeSheetUser==='function' ? normalizeSheetUser(u) : u);
+      if(pulledUsers.length){
+        state.users = typeof mergeById==='function' ? mergeById(state.users, pulledUsers) : pulledUsers;
+        state.syncedUserIds = Array.from(new Set([...state.syncedUserIds, ...pulledUsers.map(u=>u.id)]));
+        if(typeof window.recheckLoginNik === 'function') window.recheckLoginNik();
+      }
+    }catch(e){ /* offline atau backend belum siap — tetap lanjut pakai data lokal/seed */ }
+  }
   state.loaded = true;
   await persistDocs(true); // true = skip auto-push saat inisialisasi awal
   await persistUsers(true);

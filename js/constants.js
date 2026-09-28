@@ -1,3 +1,11 @@
+/* ================= BACKEND SHEETS DEFAULT ================= */
+// URL Web App Google Apps Script bawaan (PT New Ratna Motor). Ditanam langsung di kode
+// supaya SEMUA perangkat yang buka SIMONA otomatis tahu backend-nya tanpa perlu login
+// dulu untuk mengaturnya (menghindari masalah "harus login untuk atur sync, tapi harus
+// sync dulu untuk bisa login" saat pengguna baru pertama kali membuka di perangkat lain).
+// Kosongkan (string kosong) kalau suatu saat mau nonaktifkan default ini.
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxxQKdgXg0cDm6cevozWpB-_RAXCulkuZ8fc-2rnyMfeBdsqNjJ2dkBgoaYIr4dGrWcMA/exec';
+
 /* ================= PENYIMPANAN TERPADU ================= */
 // window.storage hanya tersedia saat SIMONA dijalankan di dalam Claude Artifacts.
 // Saat di-hosting sendiri (GitHub Pages, Netlify, server kantor, dll), window.storage

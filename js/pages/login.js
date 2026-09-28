@@ -63,20 +63,25 @@ function bindLogin(){
   const nikField = document.getElementById('loginNik');
   const namaField = document.getElementById('loginNama');
   const passwordField = document.getElementById('loginPassword');
-  nikField.addEventListener('input', ()=>{
+  const checkNikMatch = (focusPasswordOnMatch)=>{
     const nik = nikField.value.trim();
     const found = state.users.find(u=> String(u.nik||'').trim().toLowerCase() === nik.toLowerCase());
     if(found && nik){
       namaField.value = found.name;
       namaField.readOnly = true;
       namaField.classList.add('bg-slate-100','text-slate-500');
-      passwordField.focus();
-    } else {
+      if(focusPasswordOnMatch) passwordField.focus();
+    } else if(!namaField.readOnly || !nik) {
       namaField.value = '';
       namaField.readOnly = false;
       namaField.classList.remove('bg-slate-100','text-slate-500');
     }
-  });
+  };
+  nikField.addEventListener('input', ()=> checkNikMatch(true));
+  // Dipanggil lagi dari initStorage() (state.js) begitu data user terbaru selesai ditarik
+  // dari Sheets di latar belakang — supaya NIK yang baru dibuat di perangkat lain langsung
+  // dikenali walau pengguna sudah mulai mengetik sebelum tarik data selesai.
+  window.recheckLoginNik = ()=>{ if(state.view==='login' && document.getElementById('loginNik')) checkNikMatch(false); };
 
   const doLogin = async ()=>{
     const nik = document.getElementById('loginNik').value.trim();

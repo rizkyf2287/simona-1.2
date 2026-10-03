@@ -53,7 +53,8 @@ function monthlySeries(docType){
   settledDocs.forEach(d=>{
     const settleDate = new Date(d.updatedAt);
     const key = settleDate.getFullYear()+'-'+String(settleDate.getMonth()+1).padStart(2,'0');
-    const cycleDays = (new Date(d.updatedAt) - new Date(d.createdAt)) / 86400000;
+    const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+    const cycleDays = (new Date(d.updatedAt) - base) / 86400000;
     (byMonth[key] = byMonth[key] || []).push(cycleDays);
   });
   const keys = Object.keys(byMonth).sort();
@@ -97,7 +98,10 @@ function typeMetrics(docType){
     return { status:s, avgMs: arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0, count:arr.length };
   }).filter(s=>s.count>0);
 
-  const cycleTimes = docs.map(d=> d.status===terminal ? (new Date(d.updatedAt)-new Date(d.createdAt)) : (Date.now()-new Date(d.createdAt).getTime()));
+ const cycleTimes = docs.map(d=> {
+  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+  return d.status===terminal ? (new Date(d.updatedAt) - base) : (Date.now() - base.getTime());
+});
   const avgCycle = cycleTimes.length ? cycleTimes.reduce((a,b)=>a+b,0)/cycleTimes.length : 0;
 
   const buckets = [
@@ -106,27 +110,30 @@ function typeMetrics(docType){
     {label:'61–90 hari', min:61, max:90, count:0, nominal:0},
     {label:'> 90 hari', min:91, max:Infinity, count:0, nominal:0},
   ];
-  docs.filter(d=>d.status!==terminal).forEach(d=>{
-    const base = d.tglInvoice ? new Date(d.tglInvoice) : new Date(d.createdAt);
-    const days = Math.max(0, Math.floor((Date.now()-base.getTime())/86400000));
-    const b = buckets.find(b=>days>=b.min && days<=b.max) || buckets[buckets.length-1];
-    b.count++; b.nominal += (d.nominal||0);
-  });
-
+ docs.filter(d=>d.status!==terminal).forEach(d=>{
+  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+  const days = Math.max(0, Math.floor((Date.now()-base.getTime())/86400000));
+  const b = buckets.find(b=>days>=b.min && days<=b.max) || buckets[buckets.length-1];
+  b.count++; b.nominal += (d.nominal||0);
+});
   const deptMap = {};
   docs.forEach(d=>{ deptMap[d.relatedDept] = (deptMap[d.relatedDept]||0) + (d.nominal||0); });
   const topDepts = Object.entries(deptMap).map(([dep,nominal])=>({dep,nominal})).sort((a,b)=>b.nominal-a.nominal).slice(0,5);
 
   // DSO (AR) / DPO (AP): rata-rata hari siklus dari dokumen yang SUDAH selesai (realized)
-  const settledCycleMs = settled.map(d=> new Date(d.updatedAt)-new Date(d.createdAt));
+const settledCycleMs = settled.map(d=> {
+  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+  return new Date(d.updatedAt) - base;
+});
   const dsoAvgDays = settledCycleMs.length ? Math.round((settledCycleMs.reduce((a,b)=>a+b,0)/settledCycleMs.length)/86400000) : null;
 
   // Pola bayar per Related Dept: rata-rata hari siklus (realized) per departemen, diurutkan tercepat -> terlambat
   const deptCycleMap = {};
-  settled.forEach(d=>{
-    const ms = new Date(d.updatedAt)-new Date(d.createdAt);
-    (deptCycleMap[d.relatedDept] = deptCycleMap[d.relatedDept]||[]).push(ms);
-  });
+settled.forEach(d=>{
+  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+  const ms = new Date(d.updatedAt) - base;
+  (deptCycleMap[d.relatedDept] = deptCycleMap[d.relatedDept]||[]).push(ms);
+});
   const polaBayarByDept = Object.entries(deptCycleMap).map(([dep,arr])=>({
     dep, avgDays: Math.round((arr.reduce((a,b)=>a+b,0)/arr.length)/86400000), count:arr.length,
   })).sort((a,b)=>a.avgDays-b.avgDays);
@@ -370,7 +377,16 @@ function renderReports(){
   const docs = filteredDocsForReport();
   const months=[]; const now=new Date();
   for(let i=5;i>=0;i--){ const dt=new Date(now.getFullYear(), now.getMonth()-i, 1); months.push({label:dt.toLocaleDateString('id-ID',{month:'short'}), key:dt.getFullYear()+'-'+dt.getMonth(), ar:0, ap:0}); }
-  docs.forEach(d=>{ const dt=new Date(d.createdAt); const key=dt.getFullYear()+'-'+dt.getMonth(); const b=months.find(m=>m.key===key); if(b){ if(d.docType==='AR') b.ar++; else b.ap++; } });
+  docs.forEach(d=>{ 
+  const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); 
+  if(dt) {
+    const key = dt.getFullYear() + '-' + dt.getMonth(); 
+    const b = months.find(m=>m.key===key); 
+    if(b){ 
+      if(d.docType==='AR') b.ar++; else b.ap++; 
+    }
+  }
+});
   const maxMonth = Math.max(1, ...months.map(m=>m.ar+m.ap));
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];

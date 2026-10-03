@@ -1,5 +1,13 @@
 /* ================= USER MANAGEMENT ================= */
-function renderUsers(){
+function renderUsers(){// --- PENAMBAHAN DI SINI ---
+  if (!state.currentUser || state.currentUser.role !== 'Super User') {
+    return `
+      <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-xl text-center">
+        <h4 class="font-bold text-lg mb-1">Akses Ditolak</h4>
+        <p class="text-sm">Anda tidak memiliki hak akses untuk membuka halaman Manajemen User.</p>
+      </div>`;
+  }
+  // ---------------------------
   return `
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
     <div>

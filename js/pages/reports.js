@@ -1,4 +1,25 @@
-/* ================= REPORTS ================= */
+// Fungsi aman untuk parse tanggal (mendukung YYYY-MM-DD, DD/MM/YYYY, dan Excel Serial Date)
+function parseDateAman(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  
+  // Jika formatnya angka serial Excel (misal: 45480)
+  if (typeof val === 'number') {
+    return new Date((val - 25569) * 86400 * 1000);
+  }
+  
+  const str = String(val).trim();
+  
+  // Jika format DD/MM/YYYY atau DD-MM-YYYY
+  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(str)) {
+    const parts = str.split(/[\/\-]/);
+    // parts[0] = DD, parts[1] = MM, parts[2] = YYYY
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+  
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
 /* ================= REPORT ANALYTICS HELPERS ================= */
 function availableReportMonths(){
   const set = new Set();
@@ -14,7 +35,7 @@ function filteredDocsForReport(){
   const noFilter = state.reportMonths.length===0 && state.reportYears.length===0 && state.reportSumber.length===0 && state.reportDept.length===0 && state.reportStatus.length===0;
   if(noFilter) return state.documents;
   return state.documents.filter(d=>{
-    const dt = new Date(d.tglInvoice || d.createdAt);
+    const dt = const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.invoiceDate) || parseDateAman(d.createdAt);
     const monthOk = state.reportMonths.length===0 || (!isNaN(dt) && state.reportMonths.includes(dt.getMonth()));
     const yearOk = state.reportYears.length===0 || (!isNaN(dt) && state.reportYears.includes(dt.getFullYear()));
     const sumberOk = state.reportSumber.length===0 || state.reportSumber.includes(d.sumber);

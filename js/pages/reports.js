@@ -444,7 +444,7 @@ const docs = filteredDocsForReport();
 
   const checkboxDropdown = (id, label, options, selected, iconName)=>`
     <div class="flex-1 min-w-[190px] relative report-filter-wrap" data-filter-id="${id}">
-      <label class="text-[10.5px] font-bold uppercase tracking-wide text-slate-400 mb-2 flex items-center gap-1.5">${msi(iconName,'text-[14px]')} ${label} ${selected.length?`<span class="px-1.5 py-0.5 rounded-full bg-primary text-white text-[9px]">${selected.length}</span>`:''}</label>
+      <label class="text-[10.5px] font-bold uppercase tracking-wide text-slate-400 mb-2 flex items-center gap-1.5">${msi(iconName,'text-[14px]')} ${label}${selected.length?`<span class="px-1.5 py-0.5 rounded-full bg-primary text-white text-[9px]">${selected.length}</span>`:''}</label>
       <button type="button" data-filter-toggle="${id}" class="w-full flex items-center justify-between border border-slate-300 rounded-lg px-3 py-2.5 text-xs bg-white hover:border-primary text-left">
         <span class="truncate ${selected.length?'text-slate-800 font-semibold':'text-slate-400'}">${selected.length ? selected.join(', ') : 'Semua ' + label}</span>
         ${msi('expand_more','text-[16px] text-slate-400 flex-shrink-0')}
@@ -468,16 +468,13 @@ const docs = filteredDocsForReport();
 
   <section class="bg-white rounded-xl p-5 soft-lift border border-slate-200">
     <div class="flex items-center justify-between mb-3">
-      <h4 class="font-bold text-primary flex items-center gap-2 text-sm">${msi('filter_alt','text-[18px]')} Filter Laporan</h4>
-      ${activeFilterCount ? `<button type="button" id="clearReportFilter" class="px-3 py-1.5 rounded text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50">Reset Filter (${activeFilterCount})</button>` : ''}
+      <h4 class="font-bold text-primary flex items-center gap-2 text-sm">${msi('filter_alt','text-[18px]')} Filter Laporan</h4>${activeFilterCount ? `<button type="button" id="clearReportFilter" class="px-3 py-1.5 rounded text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50">Reset Filter (${activeFilterCount})</button>` : ''}
     </div>
     <p class="text-[11px] text-slate-400 mb-3">Klik tiap dropdown untuk centang satu atau beberapa pilihan. Laporan di bawah otomatis diperbarui begitu pilihan berubah.</p>
     <div class="flex flex-wrap gap-4">
       ${checkboxDropdown('reportMonthSelect', 'Bulan', avMonths.map(mi=>({value:mi, label:MONTH_NAMES[mi]})), state.reportMonths.map(String), 'calendar_month')}
-      ${checkboxDropdown('reportYearSelect', 'Tahun', avYears.map(y=>({value:y, label:String(y)})), state.reportYears.map(String), 'event')}
-      ${checkboxDropdown('reportSumberSelect', 'Sumber', SUMBER.map(s=>({value:s, label:s})), state.reportSumber, 'source')}
-      ${checkboxDropdown('reportDeptSelect', 'Related Divisi', DEPARTMENTS.map(d=>({value:d, label:d})), state.reportDept, 'domain')}
-      ${checkboxDropdown('reportStatusSelect', 'Status', STATUS_LIST.map(s=>({value:s, label:s})), state.reportStatus, 'flag')}
+      ${checkboxDropdown('reportYearSelect', 'Tahun', avYears.map(y=>({value:y, label:String(y)})), state.reportYears.map(String), 'event')}${checkboxDropdown('reportSumberSelect', 'Sumber', SUMBER.map(s=>({value:s, label:s})), state.reportSumber, 'source')}
+      ${checkboxDropdown('reportDeptSelect', 'Related Divisi', DEPARTMENTS.map(d=>({value:d, label:d})), state.reportDept, 'domain')}${checkboxDropdown('reportStatusSelect', 'Status', STATUS_LIST.map(s=>({value:s, label:s})), state.reportStatus, 'flag')}
     </div>
   </section>
 
@@ -489,11 +486,11 @@ const docs = filteredDocsForReport();
       ${months.map(m=>`
       <div class="flex-1 min-w-[50px] flex flex-col items-center justify-end h-full">
         <div class="flex items-end gap-1.5 w-full justify-center h-full">
-          <!-- Batang AR (Biru/Nila) -->
+          <!-- Batang AR (Indigo) -->
           <div class="flex-1 max-w-[18px] bg-indigo-600 rounded-t flex flex-col justify-between items-center transition-all" style="height:${((m.ar/maxVal)*100).toFixed(0)}%; min-height:${m.ar>0?'16px':'2px'}">
             ${m.ar > 0 ? `<span class="text-[9px] text-white font-bold pt-0.5">${m.ar}</span>` : ''}
           </div>
-          <!-- Batang AP (Merah/Pink) -->
+          <!-- Batang AP (Pink) -->
           <div class="flex-1 max-w-[18px] bg-rose-500 rounded-t flex flex-col justify-between items-center transition-all" style="height:${((m.ap/maxVal)*100).toFixed(0)}%; min-height:${m.ap>0?'16px':'2px'}">
             ${m.ap > 0 ? `<span class="text-[9px] text-white font-bold pt-0.5">${m.ap}</span>` : ''}
           </div>
@@ -509,7 +506,6 @@ const docs = filteredDocsForReport();
     </div>
   </div>
 
-  ${renderTypeReportSection('AR')}
-  ${renderTypeReportSection('AP')}
+  ${renderTypeReportSection('AR')}${renderTypeReportSection('AP')}
   `;
 }

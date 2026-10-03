@@ -23,19 +23,19 @@ function parseDateAman(val) {
 /* ================= REPORT ANALYTICS HELPERS ================= */
 function availableReportMonths(){
   const set = new Set();
-  state.documents.forEach(d=>{ const dt = new Date(d.tglInvoice || d.createdAt); if(!isNaN(dt)) set.add(dt.getMonth()); });
+  state.documents.forEach(d=>{ const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); if(!isNaN(dt)) set.add(dt.getMonth()); });
   return Array.from(set).sort((a,b)=>a-b);
 }
 function availableReportYears(){
   const set = new Set();
-  state.documents.forEach(d=>{ const dt = new Date(d.tglInvoice || d.createdAt); if(!isNaN(dt)) set.add(dt.getFullYear()); });
+  state.documents.forEach(d=>{ const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); if(!isNaN(dt)) set.add(dt.getFullYear()); });
   return Array.from(set).sort((a,b)=>a-b);
 }
 function filteredDocsForReport(){
   const noFilter = state.reportMonths.length===0 && state.reportYears.length===0 && state.reportSumber.length===0 && state.reportDept.length===0 && state.reportStatus.length===0;
   if(noFilter) return state.documents;
   return state.documents.filter(d=>{
-    const dt = const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.invoiceDate) || parseDateAman(d.createdAt);
+    const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.invoiceDate) || parseDateAman(d.createdAt);
     const monthOk = state.reportMonths.length===0 || (!isNaN(dt) && state.reportMonths.includes(dt.getMonth()));
     const yearOk = state.reportYears.length===0 || (!isNaN(dt) && state.reportYears.includes(dt.getFullYear()));
     const sumberOk = state.reportSumber.length===0 || state.reportSumber.includes(d.sumber);

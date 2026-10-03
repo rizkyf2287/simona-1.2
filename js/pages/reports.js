@@ -374,20 +374,33 @@ function renderTypeReportSection(docType){
 }
 
 function renderReports(){
-  const docs = filteredDocsForReport();
-  const months=[]; const now=new Date();
-  for(let i=5;i>=0;i--){ const dt=new Date(now.getFullYear(), now.getMonth()-i, 1); months.push({label:dt.toLocaleDateString('id-ID',{month:'short'}), key:dt.getFullYear()+'-'+dt.getMonth(), ar:0, ap:0}); }
-  docs.forEach(d=>{ 
-  const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); 
-  if(dt) {
-    const key = dt.getFullYear() + '-' + dt.getMonth(); 
-    const b = months.find(m=>m.key===key); 
-    if(b){ 
-      if(d.docType==='AR') b.ar++; else b.ap++; 
+const docs = filteredDocsForReport();
+  
+  // 1. Ambil daftar unik bulan & tahun yang benar-benar ada pada dokumen
+  const monthYearMap = new Map();
+  docs.forEach(d => {
+    const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+    if (dt) {
+      // Key format YYYY-MM untuk pengelompokan yang tepat
+      const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+      if (!monthYearMap.has(key)) {
+        const label = dt.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+        monthYearMap.set(key, { key, label, year: dt.getFullYear(), month: dt.getMonth(), ar: 0, ap: 0 });
+      }
+      const item = monthYearMap.get(key);
+      if (d.docType === 'AR') item.ar++;
+      else item.ap++;
     }
-  }
-});
-  const maxMonth = Math.max(1, ...months.map(m=>m.ar+m.ap));
+  });
+
+  // Urutkan bulan dari yang paling lama ke yang terbaru secara kronologis
+  const months = Array.from(monthYearMap.values()).sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.month - b.month;
+  });
+
+  // Hitung nilai maksimum untuk menentukan tinggi grafik
+  const maxVal = Math.max(1, ...months.map(m => Math.max(m.ar, m.ap)));
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   const avMonths = availableReportMonths();
@@ -433,21 +446,31 @@ function renderReports(){
     </div>
   </section>
 
+  <!-- Graphic Section: AR & AP Berdampingan (Side-by-Side) -->
   <div class="bg-white rounded-xl p-6 soft-lift border border-slate-200">
     <h4 class="font-bold text-primary mb-4">Volume Pengajuan per Bulan (AR vs AP)</h4>
-    <div class="flex items-end gap-3 h-44">
+    ${months.length ? `
+    <div class="flex items-end gap-4 h-48 border-b border-slate-100 pb-2 overflow-x-auto">
       ${months.map(m=>`
-      <div class="flex-1 flex flex-col items-center justify-end gap-2 h-full">
-        <div class="w-full max-w-[36px] flex flex-col-reverse rounded-t overflow-hidden relative" style="height:${((m.ar+m.ap)/maxMonth*100).toFixed(0)}%;min-height:${(m.ar+m.ap)>0?'4px':'0'}">
-          <div class="bg-indigo-600 w-full flex items-start justify-center" style="height:${m.ar+m.ap>0 ? (m.ar/(m.ar+m.ap)*100).toFixed(0):0}%">${m.ar>0?`<span class="text-[9px] text-white font-bold pt-0.5">${m.ar}</span>`:''}</div>
-          <div class="bg-rose-500 w-full flex items-start justify-center" style="height:${m.ar+m.ap>0 ? (m.ap/(m.ar+m.ap)*100).toFixed(0):0}%">${m.ap>0?`<span class="text-[9px] text-white font-bold pt-0.5">${m.ap}</span>`:''}</div>
+      <div class="flex-1 min-w-[50px] flex flex-col items-center justify-end h-full">
+        <div class="flex items-end gap-1.5 w-full justify-center h-full">
+          <!-- Batang AR (Biru/Nila) -->
+          <div class="flex-1 max-w-[18px] bg-indigo-600 rounded-t flex flex-col justify-between items-center transition-all" style="height:${((m.ar/maxVal)*100).toFixed(0)}%; min-height:${m.ar>0?'16px':'2px'}">
+            ${m.ar > 0 ? `<span class="text-[9px] text-white font-bold pt-0.5">${m.ar}</span>` : ''}
+          </div>
+          <!-- Batang AP (Merah/Pink) -->
+          <div class="flex-1 max-w-[18px] bg-rose-500 rounded-t flex flex-col justify-between items-center transition-all" style="height:${((m.ap/maxVal)*100).toFixed(0)}%; min-height:${m.ap>0?'16px':'2px'}">
+            ${m.ap > 0 ? `<span class="text-[9px] text-white font-bold pt-0.5">${m.ap}</span>` : ''}
+          </div>
         </div>
-        <span class="text-[10.5px] text-slate-400 font-semibold">${m.label}</span>
+        <span class="text-[10.5px] text-slate-500 font-semibold mt-2 whitespace-nowrap">${m.label}</span>
       </div>`).join('')}
     </div>
+    ` : `<p class="text-sm text-slate-400 py-8 text-center">Belum ada data pengajuan untuk ditampilkan pada filter ini.</p>`}
+    
     <div class="flex items-center gap-4 mt-3 text-[11px] text-slate-500">
-      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-indigo-600 inline-block"></span>AR</span>
-      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500 inline-block"></span>AP</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-indigo-600 inline-block"></span>AR (Account Receivable)</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500 inline-block"></span>AP (Account Payable)</span>
     </div>
   </div>
 
@@ -455,4 +478,3 @@ function renderReports(){
   ${renderTypeReportSection('AP')}
   `;
 }
-

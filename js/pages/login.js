@@ -1,6 +1,4 @@
 /* ================= LOGIN ================= */
-const LOGO_URL = 'https://lh3.googleusercontent.com/aida/AP1WRLsjRFUSx5c7Dxt5n-jO8remjuz9hGppqSrjVu7qNYRZpaL2Bw8aBn5QHhIpFxqtjuKXtlvvE4RvbYav1cXb2128GiLunvk1PY51zhYqiefCS3Vo-0V5ERgpGNQystxf6WBRk7oYRELCAvVJxPvVutzLF2ZlZvNydyy6IQ_2NmUeBuhy26e0zDJmyerg-ECsyGKbXl58SG0X7-CGCESo53ugrkL0acJrJclFxCKhgtY7UHVgdLoCsWHxUzv8';
-
 function renderLogin(){
   return `
   <main class="flex-grow flex items-center justify-center px-4 md:px-8 py-12 relative overflow-hidden min-h-screen bg-surface-container-low">
@@ -11,10 +9,8 @@ function renderLogin(){
     <div class="w-full max-w-[440px] z-10">
       <div class="bg-white soft-lift rounded-xl p-8 md:p-10 border border-slate-200">
         <div class="flex flex-col items-center text-center mb-6">
-          <img src="${LOGO_URL}" alt="PT New Ratna Motor Logo" class="h-11 w-auto object-contain mb-6">
-          <h1 class="text-[20px] font-bold text-primary mb-1">SIMONA</h1>
-          <h2 class="text-[22px] font-bold text-slate-900">Sistem Monitoring ArAp</h2>
-          <p class="text-sm text-slate-500 mt-2 px-2">Silakan masuk untuk mengakses sistem pelacakan &amp; validasi dokumen.</p>
+          ${renderBrandMark('lg')}
+          <p class="text-sm text-slate-500 mt-4 px-2">Silakan masuk untuk mengakses sistem pelacakan &amp; validasi dokumen.</p>
         </div>
         ${state.loginError ? `<div class="bg-red-50 text-red-700 text-sm px-3 py-2.5 rounded-lg mb-4 border border-red-200">${state.loginError}</div>` : ''}
         <div id="loginForm" class="space-y-5">

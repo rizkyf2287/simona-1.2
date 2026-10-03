@@ -47,25 +47,60 @@ function filteredDocsForReport(){
 
 // Time series bulanan: SLA rata-rata (avg cycle) & DSO/DPO, dihitung dari dokumen yang CAIR/BAYAR pada bulan tsb.
 function monthlySeries(docType){
-  const terminal = docType==='AR' ? 'Cair' : 'Bayar';
-  const settledDocs = filteredDocsForReport().filter(d=>d.docType===docType && d.status===terminal);
-  const byMonth = {};
-  settledDocs.forEach(d=>{
-    const settleDate = new Date(d.updatedAt);
-    const key = settleDate.getFullYear()+'-'+String(settleDate.getMonth()+1).padStart(2,'0');
-    const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
-    const cycleDays = (new Date(d.updatedAt) - base) / 86400000;
-    (byMonth[key] = byMonth[key] || []).push(cycleDays);
+  // Time series bulanan: SLA rata-rata (avg cycle) & DSO/DPO, dihitung dari dokumen yang CAIR/BAYAR pada bulan tsb.
+function monthlySeries(docType){
+  const terminal = docType === 'AR' ? 'Cair' : 'Bayar';
+  
+  // Ambil dokumen yang jenisnya sesuai dan statusnya sudah terminal (Cair / Bayar)
+  // Ambil dari state.documents langsung atau perhitungkan filter non-periode (sumber/dept)
+  const settledDocs = state.documents.filter(d => {
+    if (d.docType !== docType || d.status !== terminal) return false;
+    
+    // Terapkan filter non-tanggal jika ada
+    const sumberOk = state.reportSumber.length === 0 || state.reportSumber.includes(d.sumber);
+    const deptOk = state.reportDept.length === 0 || state.reportDept.includes(d.relatedDept);
+    return sumberOk && deptOk;
   });
+
+  const byMonth = {};
+
+  settledDocs.forEach(d => {
+    // Tanggal selesai/cair diambil dari updatedAt
+    const settleDate = parseDateAman(d.updatedAt) || (d.updatedAt ? new Date(d.updatedAt) : null);
+    if (!settleDate || isNaN(settleDate.getTime())) return;
+
+    // Filter berdasarkan Pilihan Bulan/Tahun pada UI (jika user memilih filter bulan/tahun spesifik)
+    const settleMonth = settleDate.getMonth();
+    const settleYear = settleDate.getFullYear();
+
+    const monthOk = state.reportMonths.length === 0 || state.reportMonths.includes(settleMonth);
+    const yearOk = state.reportYears.length === 0 || state.reportYears.includes(settleYear);
+
+    if (monthOk && yearOk) {
+      const key = `${settleYear}-${String(settleMonth + 1).padStart(2, '0')}`;
+      
+      // Hitung durasi siklus: dari tglInvoice/createdAt sampai tgl Cair/Bayar
+      const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+      if (base) {
+        const cycleDays = Math.max(0, (settleDate - base) / 86400000);
+        (byMonth[key] = byMonth[key] || []).push(cycleDays);
+      }
+    }
+  });
+
   const keys = Object.keys(byMonth).sort();
-  return keys.map(key=>{
-    const [y,m] = key.split('-');
+  return keys.map(key => {
+    const [y, m] = key.split('-');
     const arr = byMonth[key];
-    const avgDays = arr.reduce((a,b)=>a+b,0)/arr.length;
-    return { key, label: new Date(Number(y), Number(m)-1, 1).toLocaleDateString('id-ID',{month:'short',year:'2-digit'}), avgDays: Math.round(avgDays*10)/10, count: arr.length };
+    const avgDays = arr.reduce((a, b) => a + b, 0) / arr.length;
+    return {
+      key,
+      label: new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
+      avgDays: Math.round(avgDays * 10) / 10,
+      count: arr.length
+    };
   });
 }
-
 function typeMetrics(docType){
   const docs = filteredDocsForReport().filter(d=>d.docType===docType);
   const terminal = docType==='AR' ? 'Cair' : 'Bayar';

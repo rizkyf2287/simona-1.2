@@ -122,7 +122,9 @@ function rowToDocument(row, idx, docType){
 // Mengembalikan {toAdd: [...dokumen unik], skipped: [...{row, reason}]}.
 function filterDuplicateImports(newDocs){
   const existingInvoices = new Set(
-    state.documents.filter(d=>d.noInvoice).map(d=> String(d && d.noInvoice ? d.noInvoice : '').trim().toLowerCase())
+    state.documents.filter(d=>d.noInvoice)
+    .map(d=> String(d && d.noInvoice ? d.noInvoice : '').trim().toLowerCase())
+);
   const toAdd = [];
   const skipped = [];
   const seenInBatch = new Set();

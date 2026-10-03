@@ -409,7 +409,7 @@ function renderTypeReportSection(docType){
 }
 
 function renderReports(){
-const docs = filteredDocsForReport();
+  const docs = filteredDocsForReport();
   
   // 1. Ambil daftar unik bulan & tahun yang benar-benar ada pada dokumen
   const monthYearMap = new Map();
@@ -442,7 +442,7 @@ const docs = filteredDocsForReport();
   const avYears = availableReportYears();
   const activeFilterCount = state.reportMonths.length + state.reportYears.length + state.reportSumber.length + state.reportDept.length + state.reportStatus.length;
 
-  const checkboxDropdown = (id, label, options, selected, iconName)=>`
+  const checkboxDropdown = (id, label, options, selected, iconName) => `
     <div class="flex-1 min-w-[190px] relative report-filter-wrap" data-filter-id="${id}">
       <label class="text-[10.5px] font-bold uppercase tracking-wide text-slate-400 mb-2 flex items-center gap-1.5">${msi(iconName,'text-[14px]')} ${label} ${selected.length?`<span class="px-1.5 py-0.5 rounded-full bg-primary text-white text-[9px]">${selected.length}</span>`:''}</label>
       <button type="button" data-filter-toggle="${id}" class="w-full flex items-center justify-between border border-slate-300 rounded-lg px-3 py-2.5 text-xs bg-white hover:border-primary text-left">

@@ -11,12 +11,11 @@ function renderShell(){
   return `
   <div class="flex min-h-screen bg-surface-container-low">
     <aside class="hidden md:flex flex-col h-screen py-6 px-4 gap-2 border-r border-slate-200 bg-white docked left-0 w-72 fixed z-40">
-      <div class="mb-6 px-2 flex items-center justify-center py-2">
-        <img src="${LOGO_URL}" alt="PT New Ratna Motor Logo" class="h-9 object-contain">
+      <div class="mb-4 px-2 py-2">
+        ${renderBrandMark('sm')}
       </div>
       <div class="px-2 pb-4 mb-2 border-b border-slate-100">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">SIMONA</p>
-        <p class="text-xs text-slate-500">Sistem Monitoring ArAp — PT New Ratna Motor</p>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">PT New Ratna Motor</p>
       </div>
       <nav class="flex-1 flex flex-col gap-1">
         ${nav.map(n=>`

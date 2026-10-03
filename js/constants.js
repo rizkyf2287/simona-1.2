@@ -34,6 +34,37 @@ const simonaStorage = {
   },
 };
 
+/* ================= BRAND MARK ================= */
+// Wordmark SIMONA berbasis teks/CSS (bukan gambar eksternal) supaya tidak pernah rusak/expired
+// seperti logo lama. size: 'lg' untuk halaman login, 'sm' untuk sidebar tiap menu.
+function renderBrandMark(size){
+  if(size==='lg'){
+    return `
+    <div class="flex flex-col items-center text-center">
+      <div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-lg">
+        <span class="text-white font-black text-3xl tracking-tight">S</span>
+      </div>
+      <h1 class="text-[30px] font-extrabold text-primary tracking-tight leading-none">SIMONA</h1>
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] mt-1.5">Sistem Monitoring ArAp</p>
+      <div class="flex items-center gap-2 mt-3">
+        <span class="w-4 h-px bg-slate-300"></span>
+        <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">PT New Ratna Motor</p>
+        <span class="w-4 h-px bg-slate-300"></span>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+        <span class="text-white font-black text-lg">S</span>
+      </div>
+      <div class="min-w-0">
+        <p class="text-[15px] font-extrabold text-primary leading-none tracking-tight">SIMONA</p>
+        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Sistem Monitoring ArAp</p>
+      </div>
+    </div>`;
+}
+
 /* ================= ICONS ================= */
 const msi = (name, extra='') => `<span class="material-symbols-outlined ${extra}">${name}</span>`;
 

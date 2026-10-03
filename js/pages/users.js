@@ -1,5 +1,5 @@
 /* ================= USER MANAGEMENT ================= */
-function renderUsers(){// --- PENAMBAHAN DI SINI ---
+function renderUsers(){
   if (!state.currentUser || state.currentUser.role !== 'Super User') {
     return `
       <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-xl text-center">

@@ -517,19 +517,19 @@ function renderReports(){
 }
 
 function renderTypeReportSection(type) {
-  const isAR = type === 'AR';
+ const isAR = (type === 'AR');
   const label = isAR ? 'Account Receivable (AR)' : 'Account Payable (AP)';
-  const docList = filteredDocsForReport().filter(d => d.docType === type);
+  const docList = filteredDocsForReport().filter(function(d) { return d.docType === type; });
+  const colorClass = isAR ? 'text-indigo-600' : 'text-rose-600';
+  const badgeClass = isAR ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700';
 
-  return `
-    <div class="bg-white rounded-xl p-6 soft-lift border border-slate-200 mt-6">
-      <div class="flex items-center justify-between mb-4">
-        <h4 class="font-bold text-lg ${isAR ? 'text-indigo-600' : 'text-rose-600'}">${label}</h4>
-        <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${isAR ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'}">
-          ${docList.length} Dokumen
-        </span>
-      </div>
-      <p class="text-xs text-slate-500">Ringkasan statistik & detail laporan untuk tipe ${type}.</p>
-    </div>
-  `;
+  return '<div class="bg-white rounded-xl p-6 soft-lift border border-slate-200 mt-6">' +
+    '<div class="flex items-center justify-between mb-4">' +
+      '<h4 class="font-bold text-lg ' + colorClass + '">' + label + '</h4>' +
+      '<span class="text-xs font-semibold px-2.5 py-1 rounded-full ' + badgeClass + '">' +
+        docList.length + ' Dokumen' +
+      '</span>' +
+    '</div>' +
+    '<p class="text-xs text-slate-500">Ringkasan statistik & detail laporan untuk tipe ' + type + '.</p>' +
+  '</div>';
 }

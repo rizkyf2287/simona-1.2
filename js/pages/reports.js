@@ -416,7 +416,6 @@ function renderReports(){
   docs.forEach(d => {
     const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
     if (dt) {
-      // Key format YYYY-MM untuk pengelompokan yang tepat
       const key = `${dt.getFullYear()}-${dt.getMonth()}`;
       if (!monthYearMap.has(key)) {
         const label = dt.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
@@ -428,13 +427,13 @@ function renderReports(){
     }
   });
 
-  // Urutkan bulan dari yang paling lama ke yang terbaru secara kronologis
+  // Urutkan bulan secara kronologis
   const months = Array.from(monthYearMap.values()).sort((a, b) => {
     if (a.year !== b.year) return a.year - b.year;
     return a.month - b.month;
   });
 
-  // Hitung nilai maksimum untuk menentukan tinggi grafik
+  // Hitung nilai maksimum untuk tinggi grafik
   const maxVal = Math.max(1, ...months.map(m => Math.max(m.ar, m.ap)));
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -458,8 +457,8 @@ function renderReports(){
       </div>
     </div>`;
 
-  const htmlAR = renderTypeReportSection('AR');
-  const htmlAP = renderTypeReportSection('AP');
+  const sectionAR = renderTypeReportSection('AR');
+  const sectionAP = renderTypeReportSection('AP');
 
   return `
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -469,7 +468,7 @@ function renderReports(){
     </div>
   </div>
 
-  <section class="bg-white rounded-xl p-5 soft-lift border border-slate-200">
+  <section class="bg-white rounded-xl p-5 soft-lift border border-slate-200 mt-4">
     <div class="flex items-center justify-between mb-3">
       <h4 class="font-bold text-primary flex items-center gap-2 text-sm">${msi('filter_alt','text-[18px]')} Filter Laporan</h4>
       ${activeFilterCount ? `<button type="button" id="clearReportFilter" class="px-3 py-1.5 rounded text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50">Reset Filter (${activeFilterCount})</button>` : ''}
@@ -484,19 +483,19 @@ function renderReports(){
     </div>
   </section>
 
-  <!-- Graphic Section: AR & AP Berdampingan (Side-by-Side) -->
-  <div class="bg-white rounded-xl p-6 soft-lift border border-slate-200">
+  <!-- Graphic Section: AR & AP Berdampingan -->
+  <div class="bg-white rounded-xl p-6 soft-lift border border-slate-200 mt-6">
     <h4 class="font-bold text-primary mb-4">Volume Pengajuan per Bulan (AR vs AP)</h4>
     ${months.length ? `
     <div class="flex items-end gap-4 h-48 border-b border-slate-100 pb-2 overflow-x-auto">
       ${months.map(m=>`
       <div class="flex-1 min-w-[50px] flex flex-col items-center justify-end h-full">
         <div class="flex items-end gap-1.5 w-full justify-center h-full">
-          <!-- Batang AR (Biru/Nila) -->
+          <!-- Batang AR (Biru) -->
           <div class="flex-1 max-w-[18px] bg-indigo-600 rounded-t flex flex-col justify-between items-center transition-all" style="height:${((m.ar/maxVal)*100).toFixed(0)}%; min-height:${m.ar>0?'16px':'2px'}">
             ${m.ar > 0 ? `<span class="text-[9px] text-white font-bold pt-0.5">${m.ar}</span>` : ''}
           </div>
-          <!-- Batang AP (Merah/Pink) -->
+          <!-- Batang AP (Merah) -->
           <div class="flex-1 max-w-[18px] bg-rose-500 rounded-t flex flex-col justify-between items-center transition-all" style="height:${((m.ap/maxVal)*100).toFixed(0)}%; min-height:${m.ap>0?'16px':'2px'}">
             ${m.ap > 0 ? `<span class="text-[9px] text-white font-bold pt-0.5">${m.ap}</span>` : ''}
           </div>
@@ -512,22 +511,22 @@ function renderReports(){
     </div>
   </div>
 
-  ${htmlAR}
-  ${htmlAP}
+  ${sectionAR}
+  ${sectionAP}
   `;
 }
 
 function renderTypeReportSection(type) {
   const isAR = type === 'AR';
   const label = isAR ? 'Account Receivable (AR)' : 'Account Payable (AP)';
-  const docs = filteredDocsForReport().filter(d => d.docType === type);
+  const docList = filteredDocsForReport().filter(d => d.docType === type);
 
   return `
     <div class="bg-white rounded-xl p-6 soft-lift border border-slate-200 mt-6">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-bold text-lg ${isAR ? 'text-indigo-600' : 'text-rose-600'}">${label}</h4>
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${isAR ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'}">
-          ${docs.length} Dokumen
+          ${docList.length} Dokumen
         </span>
       </div>
       <p class="text-xs text-slate-500">Ringkasan statistik & detail laporan untuk tipe ${type}.</p>

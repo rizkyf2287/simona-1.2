@@ -409,7 +409,7 @@ function renderTypeReportSection(docType){
 }
 
 function renderReports(){
-  const docs = filteredDocsForReport();
+  onst docs = filteredDocsForReport();
   
   // 1. Ambil daftar unik bulan & tahun yang benar-benar ada pada dokumen
   const monthYearMap = new Map();
@@ -450,13 +450,16 @@ function renderReports(){
         ${msi('expand_more','text-[16px] text-slate-400 flex-shrink-0')}
       </button>
       <div id="panel-${id}" class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg p-2">
-        ${options.map(o=>`
+        ${options.map(o => `
         <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer text-xs">
           <input type="checkbox" data-filter-checkbox="${id}" value="${o.value}" ${selected.includes(String(o.value))||selected.includes(o.value)?'checked':''} class="rounded border-slate-300 text-primary focus:ring-primary">
           <span class="text-slate-700">${o.label}</span>
         </label>`).join('')}
       </div>
     </div>`;
+
+  const htmlAR = renderTypeReportSection('AR');
+  const htmlAP = renderTypeReportSection('AP');
 
   return `
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -509,8 +512,8 @@ function renderReports(){
     </div>
   </div>
 
-  ${renderTypeReportSection('AR')}
-  ${renderTypeReportSection('AP')}
+  ${htmlAR}
+  ${htmlAP}
   `;
 }
 

@@ -409,7 +409,7 @@ function renderTypeReportSection(docType){
 }
 
 function renderReports(){
-  onst docs = filteredDocsForReport();
+  const docs = filteredDocsForReport();
   
   // 1. Ambil daftar unik bulan & tahun yang benar-benar ada pada dokumen
   const monthYearMap = new Map();

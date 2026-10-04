@@ -13,31 +13,39 @@ function parseDateAman(val) {
   // Jika format DD/MM/YYYY atau DD-MM-YYYY
   if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(str)) {
     const parts = str.split(/[\/\-]/);
-    // parts[0] = DD, parts[1] = MM, parts[2] = YYYY
     return new Date(parts[2], parts[1] - 1, parts[0]);
   }
   
   const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
 }
+
 /* ================= REPORT ANALYTICS HELPERS ================= */
 function availableReportMonths(){
   const set = new Set();
-  state.documents.forEach(d=>{ const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); if(!isNaN(dt)) set.add(dt.getMonth()); });
+  state.documents.forEach(d => { 
+    const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); 
+    if(dt && !isNaN(dt)) set.add(dt.getMonth()); 
+  });
   return Array.from(set).sort((a,b)=>a-b);
 }
+
 function availableReportYears(){
   const set = new Set();
-  state.documents.forEach(d=>{ const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); if(!isNaN(dt)) set.add(dt.getFullYear()); });
+  state.documents.forEach(d => { 
+    const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt); 
+    if(dt && !isNaN(dt)) set.add(dt.getFullYear()); 
+  });
   return Array.from(set).sort((a,b)=>a-b);
 }
+
 function filteredDocsForReport(){
   const noFilter = state.reportMonths.length===0 && state.reportYears.length===0 && state.reportSumber.length===0 && state.reportDept.length===0 && state.reportStatus.length===0;
   if(noFilter) return state.documents;
-  return state.documents.filter(d=>{
+  return state.documents.filter(d => {
     const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.invoiceDate) || parseDateAman(d.createdAt);
-    const monthOk = state.reportMonths.length===0 || (!isNaN(dt) && state.reportMonths.includes(dt.getMonth()));
-    const yearOk = state.reportYears.length===0 || (!isNaN(dt) && state.reportYears.includes(dt.getFullYear()));
+    const monthOk = state.reportMonths.length===0 || (dt && !isNaN(dt) && state.reportMonths.includes(dt.getMonth()));
+    const yearOk = state.reportYears.length===0 || (dt && !isNaN(dt) && state.reportYears.includes(dt.getFullYear()));
     const sumberOk = state.reportSumber.length===0 || state.reportSumber.includes(d.sumber);
     const deptOk = state.reportDept.length===0 || state.reportDept.includes(d.relatedDept);
     const statusOk = state.reportStatus.length===0 || state.reportStatus.includes(d.status);
@@ -47,16 +55,11 @@ function filteredDocsForReport(){
 
 // Time series bulanan: SLA rata-rata (avg cycle) & DSO/DPO, dihitung dari dokumen yang CAIR/BAYAR pada bulan tsb.
 function monthlySeries(docType){
-  // Time series bulanan: SLA rata-rata (avg cycle) & DSO/DPO, dihitung dari dokumen yang CAIR/BAYAR pada bulan tsb.
-function monthlySeries(docType){
   const terminal = docType === 'AR' ? 'Cair' : 'Bayar';
   
-  // Ambil dokumen yang jenisnya sesuai dan statusnya sudah terminal (Cair / Bayar)
-  // Ambil dari state.documents langsung atau perhitungkan filter non-periode (sumber/dept)
   const settledDocs = state.documents.filter(d => {
     if (d.docType !== docType || d.status !== terminal) return false;
     
-    // Terapkan filter non-tanggal jika ada
     const sumberOk = state.reportSumber.length === 0 || state.reportSumber.includes(d.sumber);
     const deptOk = state.reportDept.length === 0 || state.reportDept.includes(d.relatedDept);
     return sumberOk && deptOk;
@@ -65,11 +68,9 @@ function monthlySeries(docType){
   const byMonth = {};
 
   settledDocs.forEach(d => {
-    // Tanggal selesai/cair diambil dari updatedAt
     const settleDate = parseDateAman(d.updatedAt) || (d.updatedAt ? new Date(d.updatedAt) : null);
     if (!settleDate || isNaN(settleDate.getTime())) return;
 
-    // Filter berdasarkan Pilihan Bulan/Tahun pada UI (jika user memilih filter bulan/tahun spesifik)
     const settleMonth = settleDate.getMonth();
     const settleYear = settleDate.getFullYear();
 
@@ -78,8 +79,6 @@ function monthlySeries(docType){
 
     if (monthOk && yearOk) {
       const key = `${settleYear}-${String(settleMonth + 1).padStart(2, '0')}`;
-      
-      // Hitung durasi siklus: dari tglInvoice/createdAt sampai tgl Cair/Bayar
       const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
       if (base) {
         const cycleDays = Math.max(0, (settleDate - base) / 86400000);
@@ -101,6 +100,7 @@ function monthlySeries(docType){
     };
   });
 }
+
 function typeMetrics(docType){
   const docs = filteredDocsForReport().filter(d=>d.docType===docType);
   const terminal = docType==='AR' ? 'Cair' : 'Bayar';
@@ -112,7 +112,6 @@ function typeMetrics(docType){
   const outstandingNominal = totalNominal - settledNominal;
   const settledPct = total ? Math.round(settledCount/total*100) : 0;
 
-  // Evaluasi disburse (serapan): nominal dengan disburse=Yes dibanding total nominal
   const disburseYes = docs.filter(d=>d.disburse==='Yes');
   const disburseYesNominal = disburseYes.reduce((s,d)=>s+(d.nominal||0),0);
   const disburseYesCount = disburseYes.length;
@@ -122,21 +121,25 @@ function typeMetrics(docType){
 
   const stageDurations = {};
   docs.forEach(d=>{
-    statusTimeline(d).forEach(t=>{
-      if(!t.ongoing){
-        (stageDurations[t.status] = stageDurations[t.status]||[]).push(t.end-t.start);
-      }
-    });
+    if (typeof statusTimeline === 'function') {
+      statusTimeline(d).forEach(t=>{
+        if(!t.ongoing){
+          (stageDurations[t.status] = stageDurations[t.status]||[]).push(t.end-t.start);
+        }
+      });
+    }
   });
+
   const slaByStage = STATUS_LIST.map(s=>{
     const arr = stageDurations[s]||[];
     return { status:s, avgMs: arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0, count:arr.length };
   }).filter(s=>s.count>0);
 
- const cycleTimes = docs.map(d=> {
-  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
-  return d.status===terminal ? (new Date(d.updatedAt) - base) : (Date.now() - base.getTime());
-});
+  const cycleTimes = docs.map(d=> {
+    const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+    if (!base) return 0;
+    return d.status===terminal ? (new Date(d.updatedAt) - base) : (Date.now() - base.getTime());
+  });
   const avgCycle = cycleTimes.length ? cycleTimes.reduce((a,b)=>a+b,0)/cycleTimes.length : 0;
 
   const buckets = [
@@ -145,30 +148,35 @@ function typeMetrics(docType){
     {label:'61–90 hari', min:61, max:90, count:0, nominal:0},
     {label:'> 90 hari', min:91, max:Infinity, count:0, nominal:0},
   ];
- docs.filter(d=>d.status!==terminal).forEach(d=>{
-  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
-  const days = Math.max(0, Math.floor((Date.now()-base.getTime())/86400000));
-  const b = buckets.find(b=>days>=b.min && days<=b.max) || buckets[buckets.length-1];
-  b.count++; b.nominal += (d.nominal||0);
-});
+
+  docs.filter(d=>d.status!==terminal).forEach(d=>{
+    const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+    if (base) {
+      const days = Math.max(0, Math.floor((Date.now()-base.getTime())/86400000));
+      const b = buckets.find(b=>days>=b.min && days<=b.max) || buckets[buckets.length-1];
+      b.count++; b.nominal += (d.nominal||0);
+    }
+  });
+
   const deptMap = {};
   docs.forEach(d=>{ deptMap[d.relatedDept] = (deptMap[d.relatedDept]||0) + (d.nominal||0); });
   const topDepts = Object.entries(deptMap).map(([dep,nominal])=>({dep,nominal})).sort((a,b)=>b.nominal-a.nominal).slice(0,5);
 
-  // DSO (AR) / DPO (AP): rata-rata hari siklus dari dokumen yang SUDAH selesai (realized)
-const settledCycleMs = settled.map(d=> {
-  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
-  return new Date(d.updatedAt) - base;
-});
+  const settledCycleMs = settled.map(d=> {
+    const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+    return base ? (new Date(d.updatedAt) - base) : 0;
+  });
   const dsoAvgDays = settledCycleMs.length ? Math.round((settledCycleMs.reduce((a,b)=>a+b,0)/settledCycleMs.length)/86400000) : null;
 
-  // Pola bayar per Related Dept: rata-rata hari siklus (realized) per departemen, diurutkan tercepat -> terlambat
   const deptCycleMap = {};
-settled.forEach(d=>{
-  const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
-  const ms = new Date(d.updatedAt) - base;
-  (deptCycleMap[d.relatedDept] = deptCycleMap[d.relatedDept]||[]).push(ms);
-});
+  settled.forEach(d=>{
+    const base = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
+    if (base) {
+      const ms = new Date(d.updatedAt) - base;
+      (deptCycleMap[d.relatedDept] = deptCycleMap[d.relatedDept]||[]).push(ms);
+    }
+  });
+
   const polaBayarByDept = Object.entries(deptCycleMap).map(([dep,arr])=>({
     dep, avgDays: Math.round((arr.reduce((a,b)=>a+b,0)/arr.length)/86400000), count:arr.length,
   })).sort((a,b)=>a.avgDays-b.avgDays);
@@ -196,7 +204,10 @@ function typeInsights(m){
   } else {
     lines.push(`${dsoLabel} belum dapat dihitung karena belum ada dokumen ${m.docType} yang selesai (${m.terminal}).`);
   }
-  lines.push(`${m.docType==='AR'?'Penyaluran ke dealer':'Pembebanan ke dealer'}: ${m.disbursePct}% dari total nominal ${m.docType} (${fmtIDR(m.disburseYesNominal)} dari ${fmtIDR(m.totalNominal)}) di-flag "${disburseQuestion(m.docType)}" = Yes.`);
+  
+  const questionLabel = typeof disburseQuestion === 'function' ? disburseQuestion(m.docType) : 'Disburse';
+  lines.push(`${m.docType==='AR'?'Penyaluran ke dealer':'Pembebanan ke dealer'}: ${m.disbursePct}% dari total nominal ${m.docType} (${fmtIDR(m.disburseYesNominal)} dari ${fmtIDR(m.totalNominal)}) di-flag "${questionLabel}" = Yes.`);
+  
   if(m.polaBayarByDept.length>=2){
     const fastest = m.polaBayarByDept[0], slowest = m.polaBayarByDept[m.polaBayarByDept.length-1];
     lines.push(`Pola bayar tercepat: <strong>${fastest.dep}</strong> (±${fastest.avgDays} hari); terlambat: <strong>${slowest.dep}</strong> (±${slowest.avgDays} hari).`);
@@ -233,13 +244,16 @@ function renderTypeReportSection(docType){
   const maxDeptNominal = Math.max(1, ...m.topDepts.map(d=>d.nominal));
   const series = monthlySeries(docType);
   const maxSeriesDays = Math.max(1, ...series.map(s=>s.avgDays));
+  
+  const disburseShort = typeof disburseShortLabel === 'function' ? disburseShortLabel(docType) : '';
+  const disburseQ = typeof disburseQuestion === 'function' ? disburseQuestion(docType) : 'Disburse';
 
   return `
-  <div class="bg-white rounded-xl soft-lift border border-slate-200 overflow-hidden">
+  <div class="bg-white rounded-xl soft-lift border border-slate-200 overflow-hidden mt-6">
     <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-${accent}-50/40">
       <h4 class="font-bold text-${accent}-700 flex items-center gap-2 text-base">
-        <span class="px-2 py-0.5 rounded text-[11px] font-black ${TYPE_BADGE[docType]}">${docType}</span>
-        Laporan ${DOC_TYPE_LABEL[docType]}
+        <span class="px-2 py-0.5 rounded text-[11px] font-black ${typeof TYPE_BADGE !== 'undefined' ? TYPE_BADGE[docType] : ''}">${docType}</span>
+        Laporan ${typeof DOC_TYPE_LABEL !== 'undefined' ? DOC_TYPE_LABEL[docType] : docType}
       </h4>
       <div class="flex items-center gap-4 text-xs text-slate-500">
         <span class="px-2.5 py-1 rounded-full bg-${accent}-100 text-${accent}-700 font-bold">${docType==='AR'?'DSO':'DPO'}: ${m.dsoAvgDays!==null ? m.dsoAvgDays+' hari' : '—'}</span>
@@ -268,13 +282,13 @@ function renderTypeReportSection(docType){
           <span class="text-[10px] text-slate-400 font-semibold">${s.label}</span>
         </div>`).join('')}
       </div>
-      <p class="text-[11px] text-slate-400 mt-2">Jumlah dokumen ${m.terminal.toLowerCase()} per bulan: ${series.map(s=>`${s.label} (${s.count})`).join(', ')}.</p>
-      ` : `<p class="text-sm text-slate-400 py-6 text-center">Belum ada dokumen ${docType} yang ${m.terminal.toLowerCase()} untuk dianalisis per bulan.</p>`}
+      <p class="text-[11px] text-slate-400 mt-2">Jumlah dokumen ${m.terminal.toLowerCase()} per bulan:${series.map(s=>`${s.label} (${s.count})`).join(', ')}.</p>
+      ` : `<p class="text-sm text-slate-400 py-6 text-center">Belum ada dokumen ${docType} yang${m.terminal.toLowerCase()} untuk dianalisis per bulan.</p>`}
     </div>
 
     <div class="px-6 pt-5">
       <h5 class="text-sm font-bold text-slate-700 mb-1">Evaluasi ${docType==='AR'?'Penyaluran ke Dealer (Serapan)':'Pembebanan ke Dealer'}</h5>
-      <p class="text-xs text-slate-400 mb-3">Nominal dokumen ${docType} yang di-flag "${disburseQuestion(docType)}" = Yes, dibandingkan total nominal ${docType}.</p>
+      <p class="text-xs text-slate-400 mb-3">Nominal dokumen ${docType} yang di-flag "${disburseQ}" = Yes, dibandingkan total nominal ${docType}.</p>
       <div class="flex items-center gap-4">
         <div class="flex-1">
           <div class="bg-slate-100 h-4 rounded-full overflow-hidden">
@@ -283,7 +297,7 @@ function renderTypeReportSection(docType){
             </div>
           </div>
           <div class="flex justify-between text-xs text-slate-500 mt-1.5">
-            <span>${fmtIDR(m.disburseYesNominal)} (${m.disburseYesCount} dok. ${disburseShortLabel(docType)})</span>
+            <span>${fmtIDR(m.disburseYesNominal)} (${m.disburseYesCount} dok. ${disburseShort})</span>
             <span>Total: ${fmtIDR(m.totalNominal)}</span>
           </div>
         </div>
@@ -292,7 +306,6 @@ function renderTypeReportSection(docType){
     </div>
 
     <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Pie distribusi status -->
       <div>
         <h5 class="text-sm font-bold text-slate-700 mb-3">Distribusi Status (${docType})</h5>
         <div class="flex items-center gap-6">
@@ -309,7 +322,6 @@ function renderTypeReportSection(docType){
         </div>
       </div>
 
-      <!-- SLA per tahap -->
       <div>
         <h5 class="text-sm font-bold text-slate-700 mb-3">SLA Rata-rata per Tahap Proses</h5>
         <div class="space-y-2.5">
@@ -330,7 +342,6 @@ function renderTypeReportSection(docType){
         </div>
       </div>
 
-      <!-- Aging report -->
       <div>
         <h5 class="text-sm font-bold text-slate-700 mb-3">Aging ${docType==='AR'?'Piutang':'Utang'} Outstanding</h5>
         <div class="space-y-2.5">
@@ -347,7 +358,6 @@ function renderTypeReportSection(docType){
         </div>
       </div>
 
-      <!-- Top related dept -->
       <div>
         <h5 class="text-sm font-bold text-slate-700 mb-3">Top Related Dept berdasarkan Nilai ${docType}</h5>
         <div class="space-y-2.5">
@@ -364,7 +374,6 @@ function renderTypeReportSection(docType){
         </div>
       </div>
 
-      <!-- Pola bayar per dept -->
       <div class="lg:col-span-2">
         <h5 class="text-sm font-bold text-slate-700 mb-1">Analisis Pola Bayar per Related Dept (${docType==='AR'?'kecepatan pencairan':'kecepatan pembayaran'})</h5>
         <p class="text-xs text-slate-400 mb-3">Diurutkan dari tercepat ke terlambat, dihitung dari dokumen yang sudah ${m.terminal.toLowerCase()}.</p>
@@ -411,7 +420,6 @@ function renderTypeReportSection(docType){
 function renderReports(){
   const docs = filteredDocsForReport();
   
-  // 1. Ambil daftar unik bulan & tahun yang benar-benar ada pada dokumen
   const monthYearMap = new Map();
   docs.forEach(d => {
     const dt = parseDateAman(d.tglInvoice) || parseDateAman(d.createdAt);
@@ -427,13 +435,11 @@ function renderReports(){
     }
   });
 
-  // Urutkan bulan secara kronologis
   const months = Array.from(monthYearMap.values()).sort((a, b) => {
     if (a.year !== b.year) return a.year - b.year;
     return a.month - b.month;
   });
 
-  // Hitung nilai maksimum untuk tinggi grafik
   const maxVal = Math.max(1, ...months.map(m => Math.max(m.ar, m.ap)));
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -477,9 +483,9 @@ function renderReports(){
     <div class="flex flex-wrap gap-4">
       ${checkboxDropdown('reportMonthSelect', 'Bulan', avMonths.map(mi=>({value:mi, label:MONTH_NAMES[mi]})), state.reportMonths.map(String), 'calendar_month')}
       ${checkboxDropdown('reportYearSelect', 'Tahun', avYears.map(y=>({value:y, label:String(y)})), state.reportYears.map(String), 'event')}
-      ${checkboxDropdown('reportSumberSelect', 'Sumber', SUMBER.map(s=>({value:s, label:s})), state.reportSumber, 'source')}
-      ${checkboxDropdown('reportDeptSelect', 'Related Divisi', DEPARTMENTS.map(d=>({value:d, label:d})), state.reportDept, 'domain')}
-      ${checkboxDropdown('reportStatusSelect', 'Status', STATUS_LIST.map(s=>({value:s, label:s})), state.reportStatus, 'flag')}
+      ${checkboxDropdown('reportSumberSelect', 'Sumber', typeof SUMBER !== 'undefined' ? SUMBER.map(s=>({value:s, label:s})) : [], state.reportSumber, 'source')}
+      ${checkboxDropdown('reportDeptSelect', 'Related Divisi', typeof DEPARTMENTS !== 'undefined' ? DEPARTMENTS.map(d=>({value:d, label:d})) : [], state.reportDept, 'domain')}
+      ${checkboxDropdown('reportStatusSelect', 'Status', typeof STATUS_LIST !== 'undefined' ? STATUS_LIST.map(s=>({value:s, label:s})) : [], state.reportStatus, 'flag')}
     </div>
   </section>
 
@@ -514,22 +520,4 @@ function renderReports(){
   ${sectionAR}
   ${sectionAP}
   `;
-}
-
-function renderTypeReportSection(type) {
- const isAR = (type === 'AR');
-  const label = isAR ? 'Account Receivable (AR)' : 'Account Payable (AP)';
-  const docList = filteredDocsForReport().filter(function(d) { return d.docType === type; });
-  const colorClass = isAR ? 'text-indigo-600' : 'text-rose-600';
-  const badgeClass = isAR ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700';
-
-  return '<div class="bg-white rounded-xl p-6 soft-lift border border-slate-200 mt-6">' +
-    '<div class="flex items-center justify-between mb-4">' +
-      '<h4 class="font-bold text-lg ' + colorClass + '">' + label + '</h4>' +
-      '<span class="text-xs font-semibold px-2.5 py-1 rounded-full ' + badgeClass + '">' +
-        docList.length + ' Dokumen' +
-      '</span>' +
-    '</div>' +
-    '<p class="text-xs text-slate-500">Ringkasan statistik & detail laporan untuk tipe ' + type + '.</p>' +
-  '</div>';
 }
